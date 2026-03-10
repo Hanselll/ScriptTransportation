@@ -97,6 +97,39 @@ curl -s http://127.0.0.1:8080/tool/run_full_job \
   }'
 ```
 
+
+只上传文件示例：
+
+```bash
+curl -s http://127.0.0.1:8080/tool/upload_file \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "file_key": "cases/modular_partition_ddb_with_upc_upu_upclb_kill.yaml",
+    "server_ip": "10.230.246.195",
+    "username": "gsta",
+    "password": "gsta123",
+    "remote_path": "/home/gsta/chaosmesh_workflow_runner_v16/chaos_runner/cases"
+  }'
+```
+
+
+## 运行时配置（环境变量）
+
+为了适配不同服务器目录和白名单，可以在启动 API 前设置：
+
+- `REMOTE_EXEC_SHARED_ROOT`：共享根目录（默认 `/mnt/hgfs/agent_dropzone`）
+- `REMOTE_EXEC_ALLOWED_HOSTS`：允许访问主机列表，逗号分隔
+
+示例：
+
+```bash
+export REMOTE_EXEC_SHARED_ROOT=/mnt/hgfs/ScriptTransportation
+export REMOTE_EXEC_ALLOWED_HOSTS=10.230.246.195,10.217.8.238,10.217.8.239
+python3 api_server.py --host 0.0.0.0 --port 58080
+```
+
+> 注意：如果你传的是绝对路径 `file_key`，它也必须位于 `REMOTE_EXEC_SHARED_ROOT` 之下。
+
 ## VMware 共享目录约定
 
 固定挂载点：`/mnt/hgfs/agent_dropzone`
