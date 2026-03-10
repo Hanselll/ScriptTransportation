@@ -1,6 +1,6 @@
 """SSH/SFTP transfer helpers implemented with system ssh/scp commands."""
 
-
+import os
 from pathlib import Path
 
 from config import is_allowed_host
@@ -38,7 +38,17 @@ def upload_file(local_path, server_ip, username, password, remote_path):
     _validate_host(server_ip)
     local = Path(local_path)
     if not local.is_file():
-        raise UploadError("Local file not found: {0}".format(local_path))
+        parent = str(local.parent)
+        parent_exists = os.path.isdir(parent)
+        hint = (
+            "This path is checked on the API server machine. "
+            "If the file is on the curl client machine, use /tool/upload_file_content instead."
+        )
+        raise UploadError(
+            "Local file not found: {0}; parent_exists={1}; cwd={2}. {3}".format(
+                local_path, parent_exists, os.getcwd(), hint
+            )
+        )
 
     remote_target = Path(remote_path)
     if remote_path.endswith("/") or not remote_target.suffix:

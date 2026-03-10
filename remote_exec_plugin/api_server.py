@@ -6,6 +6,7 @@ import traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 
+from config import SHARED_ROOT, get_allowed_hosts
 from tools import (
     tool_analyze_report,
     tool_fetch_report,
@@ -13,6 +14,7 @@ from tools import (
     tool_run_full_job,
     tool_run_remote_command,
     tool_upload_file,
+    tool_upload_file_content,
 )
 from utils import setup_logger
 
@@ -27,6 +29,10 @@ TOOL_SPECS = {
     "/tool/upload_file": {
         "func": tool_upload_file,
         "args": ["file_key", "server_ip", "username", "password", "remote_path"],
+    },
+    "/tool/upload_file_content": {
+        "func": tool_upload_file_content,
+        "args": ["file_name", "content_base64", "server_ip", "username", "password", "remote_path"],
     },
     "/tool/run_remote_command": {
         "func": tool_run_remote_command,
@@ -90,6 +96,16 @@ class ApiHandler(BaseHTTPRequestHandler):
 
         if self.path == "/tools":
             self._send_json(200, {"tools": sorted(TOOL_SPECS.keys())})
+            return
+
+        if self.path == "/config":
+            self._send_json(
+                200,
+                {
+                    "shared_root": str(SHARED_ROOT),
+                    "allowed_hosts": get_allowed_hosts(),
+                },
+            )
             return
 
         self._send_json(404, {"error": "Not found"})

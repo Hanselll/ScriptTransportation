@@ -69,8 +69,10 @@ kill "$(cat api_server.pid)"
 
 - `GET /health`：健康检查
 - `GET /tools`：查看支持的工具接口
+- `GET /config`：查看当前服务生效的 shared_root / allowed_hosts
 - `POST /tool/read_shared_file`
 - `POST /tool/upload_file`
+- `POST /tool/upload_file_content`（客户端直接上传 base64 文件内容，不依赖 API 服务器本地文件）
 - `POST /tool/run_remote_command`
 - `POST /tool/fetch_report`
 - `POST /tool/analyze_report`
@@ -112,6 +114,36 @@ curl -s http://127.0.0.1:8080/tool/upload_file \
   }'
 ```
 
+
+
+如果 `/tool/upload_file` 提示 `Local file not found`，通常说明：
+
+1. 该路径在 **API server 所在机器** 不存在（curl 发起端和 API server 不是同一台机器时最常见）
+2. 或者 API server 进程看不到该挂载目录
+
+可以先检查服务端看到的配置：
+
+```bash
+curl -s http://127.0.0.1:8080/config
+```
+
+然后使用 `upload_file_content` 直接通过 HTTP 上传文件内容：
+
+```bash
+FILE=/mnt/hgfs/ScriptTransportation/cases/modular_partition_ddb_with_upc_upu_upclb_kill.yaml
+B64=$(base64 -w 0 "$FILE")
+
+curl -s http://127.0.0.1:8080/tool/upload_file_content \
+  -H 'Content-Type: application/json' \
+  -d "{
+    "file_name": "modular_partition_ddb_with_upc_upu_upclb_kill.yaml",
+    "content_base64": "${B64}",
+    "server_ip": "10.230.246.195",
+    "username": "gsta",
+    "password": "gsta123",
+    "remote_path": "/home/gsta/chaosmesh_workflow_runner_v16/chaos_runner/cases/"
+  }"
+```
 
 ## 运行时配置（环境变量）
 

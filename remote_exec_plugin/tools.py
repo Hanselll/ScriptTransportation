@@ -1,5 +1,8 @@
 """Tool-facing wrappers for agent integration."""
 
+import base64
+import os
+import tempfile
 
 from report_fetcher import fetch_report
 from report_parser import analyze_report
@@ -22,6 +25,39 @@ def tool_upload_file(
 ) -> dict:
     local_path = resolve_shared_path(file_key)
     return upload_file(local_path, server_ip, username, password, remote_path)
+
+
+def tool_upload_file_content(
+    file_name: str,
+    content_base64: str,
+    server_ip: str,
+    username: str,
+    password: str,
+    remote_path: str,
+) -> dict:
+    """Upload file content directly (no dependency on API server local filesystem)."""
+    if not file_name:
+        raise ValueError("file_name is required")
+    if not content_base64:
+        raise ValueError("content_base64 is required")
+
+    suffix = os.path.splitext(file_name)[1]
+    fd, temp_path = tempfile.mkstemp(prefix="remote_exec_upload_", suffix=suffix)
+    os.close(fd)
+    try:
+        raw = base64.b64decode(content_base64)
+        with open(temp_path, "wb") as fh:
+            fh.write(raw)
+
+        if remote_path.endswith("/"):
+            target_remote = remote_path + file_name
+        else:
+            target_remote = remote_path
+
+        return upload_file(temp_path, server_ip, username, password, target_remote)
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 def tool_run_remote_command(
