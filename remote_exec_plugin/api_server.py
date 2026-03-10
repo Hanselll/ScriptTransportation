@@ -6,7 +6,6 @@ import traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 
-from config import SHARED_ROOT, get_allowed_hosts
 from tools import (
     tool_analyze_report,
     tool_fetch_report,
@@ -96,16 +95,6 @@ class ApiHandler(BaseHTTPRequestHandler):
 
         if self.path == "/tools":
             self._send_json(200, {"tools": sorted(TOOL_SPECS.keys())})
-            return
-
-        if self.path == "/config":
-            self._send_json(
-                200,
-                {
-                    "shared_root": str(SHARED_ROOT),
-                    "allowed_hosts": get_allowed_hosts(),
-                },
-            )
             return
 
         self._send_json(404, {"error": "Not found"})

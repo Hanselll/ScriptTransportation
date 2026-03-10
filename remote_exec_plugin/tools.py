@@ -23,7 +23,9 @@ def tool_upload_file(
     password: str,
     remote_path: str,
 ) -> dict:
-    local_path = resolve_shared_path(file_key)
+    # For upload API, accept raw absolute/relative local path directly.
+    # If caller wants shared-root semantics, they can pass a shared file_key path.
+    local_path = file_key
     return upload_file(local_path, server_ip, username, password, remote_path)
 
 

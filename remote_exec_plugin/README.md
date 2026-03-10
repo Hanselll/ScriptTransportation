@@ -69,7 +69,6 @@ kill "$(cat api_server.pid)"
 
 - `GET /health`：健康检查
 - `GET /tools`：查看支持的工具接口
-- `GET /config`：查看当前服务生效的 shared_root / allowed_hosts
 - `POST /tool/read_shared_file`
 - `POST /tool/upload_file`
 - `POST /tool/upload_file_content`（客户端直接上传 base64 文件内容，不依赖 API 服务器本地文件）
@@ -116,18 +115,9 @@ curl -s http://127.0.0.1:8080/tool/upload_file \
 
 
 
-如果 `/tool/upload_file` 提示 `Local file not found`，通常说明：
+如果 `/tool/upload_file` 提示 `Local file not found`，通常说明该路径在 **API server 所在机器** 不存在。
 
-1. 该路径在 **API server 所在机器** 不存在（curl 发起端和 API server 不是同一台机器时最常见）
-2. 或者 API server 进程看不到该挂载目录
-
-可以先检查服务端看到的配置：
-
-```bash
-curl -s http://127.0.0.1:8080/config
-```
-
-然后使用 `upload_file_content` 直接通过 HTTP 上传文件内容：
+可直接改用 `upload_file_content` 通过 HTTP 上传文件内容（不依赖 API server 本地文件）：
 
 ```bash
 FILE=/mnt/hgfs/ScriptTransportation/cases/modular_partition_ddb_with_upc_upu_upclb_kill.yaml
@@ -143,35 +133,6 @@ curl -s http://127.0.0.1:8080/tool/upload_file_content \
     "password": "gsta123",
     "remote_path": "/home/gsta/chaosmesh_workflow_runner_v16/chaos_runner/cases/"
   }"
-```
-
-## 运行时配置（环境变量）
-
-为了适配不同服务器目录和白名单，可以在启动 API 前设置：
-
-- `REMOTE_EXEC_SHARED_ROOT`：共享根目录（默认 `/mnt/hgfs/agent_dropzone`）
-- `REMOTE_EXEC_ALLOWED_HOSTS`：允许访问主机列表，逗号分隔（支持 `*` 允许所有主机）
-
-示例：
-
-```bash
-export REMOTE_EXEC_SHARED_ROOT=/mnt/hgfs/ScriptTransportation
-export REMOTE_EXEC_ALLOWED_HOSTS=10.230.246.195,10.217.8.238,10.217.8.239
-python3 api_server.py --host 0.0.0.0 --port 58080
-```
-
-> 注意：如果你传的是绝对路径 `file_key`，它也必须位于 `REMOTE_EXEC_SHARED_ROOT` 之下。
-
-
-排错说明（你这次报错对应）：
-
-- 如果返回 `Server x.x.x.x is not in ALLOWED_HOSTS.`，请确认 `REMOTE_EXEC_ALLOWED_HOSTS` 包含该 IP。
-- 当前版本会在每次请求时读取该环境变量，所以修改后**无需重启 API 进程**。
-
-示例（允许你的目标机）：
-
-```bash
-export REMOTE_EXEC_ALLOWED_HOSTS=10.230.246.195,10.217.8.238,10.217.8.239
 ```
 
 ## VMware 共享目录约定
@@ -207,9 +168,9 @@ print(result)
 
 ## 安全限制说明
 
-- 仅允许连接 `ALLOWED_HOSTS` 中的远端地址
+- 远端地址限制已取消（按当前需求不启用 ALLOWED_HOSTS 限制）
 - 远端命令执行会进行危险关键词拦截
-- 共享目录访问仅允许 `SHARED_ROOT` 下相对路径
+- 共享目录读取接口仍使用 `SHARED_ROOT` 约定；上传接口支持直接传本地路径
 - 防止路径穿越（`../`）
 - 文件读取支持最大大小限制（默认 100MB）
 
