@@ -118,7 +118,7 @@ curl -s http://127.0.0.1:8080/tool/upload_file \
 为了适配不同服务器目录和白名单，可以在启动 API 前设置：
 
 - `REMOTE_EXEC_SHARED_ROOT`：共享根目录（默认 `/mnt/hgfs/agent_dropzone`）
-- `REMOTE_EXEC_ALLOWED_HOSTS`：允许访问主机列表，逗号分隔
+- `REMOTE_EXEC_ALLOWED_HOSTS`：允许访问主机列表，逗号分隔（支持 `*` 允许所有主机）
 
 示例：
 
@@ -129,6 +129,18 @@ python3 api_server.py --host 0.0.0.0 --port 58080
 ```
 
 > 注意：如果你传的是绝对路径 `file_key`，它也必须位于 `REMOTE_EXEC_SHARED_ROOT` 之下。
+
+
+排错说明（你这次报错对应）：
+
+- 如果返回 `Server x.x.x.x is not in ALLOWED_HOSTS.`，请确认 `REMOTE_EXEC_ALLOWED_HOSTS` 包含该 IP。
+- 当前版本会在每次请求时读取该环境变量，所以修改后**无需重启 API 进程**。
+
+示例（允许你的目标机）：
+
+```bash
+export REMOTE_EXEC_ALLOWED_HOSTS=10.230.246.195,10.217.8.238,10.217.8.239
+```
 
 ## VMware 共享目录约定
 
