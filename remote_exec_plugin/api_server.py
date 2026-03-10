@@ -94,8 +94,16 @@ class ApiHandler(BaseHTTPRequestHandler):
             return json.loads(raw.decode("utf-8"))
         except Exception:
             raise ValueError(
-                "Request body is not valid JSON. Hint: use single-quoted -d or a heredoc to avoid shell quote breakage."
+                "Request body is not valid JSON. Hint: check commas in JSON and use single-quoted -d or heredoc."
             )
+
+    def _normalize_payload(self, path, payload):
+        """Backward-compatible field aliases for simpler caller payloads."""
+        if path == "/tool/upload_file":
+            # allow file_name as alias of file_key
+            if "file_key" not in payload and "file_name" in payload:
+                payload["file_key"] = payload.get("file_name")
+        return payload
 
     def do_GET(self):
         if self.path == "/health":
@@ -114,7 +122,7 @@ class ApiHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            payload = self._read_json()
+            payload = self._normalize_payload(self.path, self._read_json())
             spec = TOOL_SPECS[self.path]
             missing = [name for name in spec["args"] if name not in payload]
             if missing:

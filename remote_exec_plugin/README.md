@@ -113,7 +113,7 @@ curl -s http://127.0.0.1:8080/tool/upload_file \
     "ssh_port": 50163
   }'
 ```
-
+注意：JSON 里字段之间必须有逗号，比如 `"ssh_port": 50163,` 后面要带逗号。
 
 
 如果 `/tool/upload_file` 提示 `Local file not found`，通常说明该路径在 **API server 所在机器** 不存在。
