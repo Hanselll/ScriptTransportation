@@ -1,6 +1,8 @@
 """Persistent HTTP API server exposing remote_exec_plugin tool functions."""
 
 import argparse
+import base64
+import cgi
 import json
 import traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -105,6 +107,59 @@ class ApiHandler(BaseHTTPRequestHandler):
                 payload["file_key"] = payload.get("file_name")
         return payload
 
+    def _handle_upload_file_multipart(self):
+        form = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={
+                "REQUEST_METHOD": "POST",
+                "CONTENT_TYPE": self.headers.get("Content-Type", ""),
+            },
+        )
+
+        file_item = form.getfirst("file")
+        if "file" in form and getattr(form["file"], "file", None):
+            file_field = form["file"]
+            file_name = file_field.filename or "upload.bin"
+            file_bytes = file_field.file.read()
+        elif "file_name" in form and getattr(form["file_name"], "file", None):
+            file_field = form["file_name"]
+            file_name = file_field.filename or "upload.bin"
+            file_bytes = file_field.file.read()
+        else:
+            raise ValueError("multipart upload requires file field: use -F 'file=@/path/to/local.file'")
+
+        server_ip = form.getfirst("server_ip")
+        username = form.getfirst("username")
+        password = form.getfirst("password")
+        remote_path = form.getfirst("remote_path")
+        ssh_port = form.getfirst("ssh_port")
+
+        missing = []
+        if not server_ip:
+            missing.append("server_ip")
+        if not username:
+            missing.append("username")
+        if not password:
+            missing.append("password")
+        if not remote_path:
+            missing.append("remote_path")
+        if missing:
+            raise ValueError("Missing required fields: {0}".format(", ".join(missing)))
+
+        kwargs = {
+            "file_name": file_name,
+            "content_base64": base64.b64encode(file_bytes).decode("utf-8"),
+            "server_ip": server_ip,
+            "username": username,
+            "password": password,
+            "remote_path": remote_path,
+        }
+        if ssh_port:
+            kwargs["ssh_port"] = int(ssh_port)
+
+        return tool_upload_file_content(**kwargs)
+
     def do_GET(self):
         if self.path == "/health":
             self._send_json(200, {"status": "ok"})
@@ -122,6 +177,13 @@ class ApiHandler(BaseHTTPRequestHandler):
             return
 
         try:
+            content_type = self.headers.get("Content-Type", "")
+            if self.path == "/tool/upload_file" and content_type.startswith("multipart/form-data"):
+                logger.info("API call %s (multipart)", self.path)
+                result = self._handle_upload_file_multipart()
+                self._send_json(200, {"status": "success", "result": result})
+                return
+
             payload = self._normalize_payload(self.path, self._read_json())
             spec = TOOL_SPECS[self.path]
             missing = [name for name in spec["args"] if name not in payload]

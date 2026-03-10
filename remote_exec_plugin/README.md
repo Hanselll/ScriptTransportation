@@ -99,22 +99,25 @@ curl -s http://127.0.0.1:8080/tool/run_full_job \
 ```
 
 
-只上传文件示例：
+只上传文件示例（最简洁，推荐）：
 
 ```bash
-curl -s http://127.0.0.1:8080/tool/upload_file \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "file_key": "cases/modular_partition_ddb_with_upc_upu_upclb_kill.yaml",
+curl -s http://127.0.0.1:8080/tool/upload_file   -F 'file=@/mnt/hgfs/ScriptTransportation/cases/modular_partition_ddb_with_upc_upu_upclb_kill.yaml'   -F 'server_ip=10.230.246.195'   -F 'username=gsta'   -F 'password=gsta123'   -F 'ssh_port=50163'   -F 'remote_path=/home/gsta/chaosmesh_workflow_runner_v16/chaos_runner/cases/'
+```
+
+也支持 JSON 方式（`file_name` 或 `file_key` 都可）：
+
+```bash
+curl -s http://127.0.0.1:8080/tool/upload_file   -H 'Content-Type: application/json'   -d '{
+    "file_name": "/mnt/hgfs/ScriptTransportation/cases/modular_partition_ddb_with_upc_upu_upclb_kill.yaml",
     "server_ip": "10.230.246.195",
     "username": "gsta",
     "password": "gsta123",
-    "remote_path": "/home/gsta/chaosmesh_workflow_runner_v16/chaos_runner/cases",
-    "ssh_port": 50163
+    "ssh_port": 50163,
+    "remote_path": "/home/gsta/chaosmesh_workflow_runner_v16/chaos_runner/cases/"
   }'
 ```
 注意：JSON 里字段之间必须有逗号，比如 `"ssh_port": 50163,` 后面要带逗号。
-
 
 如果 `/tool/upload_file` 提示 `Local file not found`，通常说明该路径在 **API server 所在机器** 不存在。
 
