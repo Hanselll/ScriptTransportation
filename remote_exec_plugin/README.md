@@ -13,6 +13,7 @@
 
 ```text
 remote_exec_plugin/
+├── api_server.py
 ├── config.py
 ├── shared_storage.py
 ├── sftp_transfer.py
@@ -41,17 +42,60 @@ cd remote_exec_plugin
 python3 -m compileall .
 ```
 
-如果你希望先做一个最小调用验证，可以直接：
+## 常驻 API Server 运行方式
+
+### 前台运行
 
 ```bash
 cd remote_exec_plugin
-python3 - <<'PY'
-from tools import tool_analyze_report
-print(tool_analyze_report("/tmp/not_exists_report"))
-PY
+python3 api_server.py --host 0.0.0.0 --port 8080
 ```
 
-> `requirements.txt` 仅占位，内容为空依赖，不需要执行 `pip install`。
+### 后台常驻运行（推荐）
+
+```bash
+cd remote_exec_plugin
+nohup python3 api_server.py --host 0.0.0.0 --port 8080 > api_server.log 2>&1 &
+echo $! > api_server.pid
+```
+
+停止服务：
+
+```bash
+kill "$(cat api_server.pid)"
+```
+
+### 可用接口
+
+- `GET /health`：健康检查
+- `GET /tools`：查看支持的工具接口
+- `POST /tool/read_shared_file`
+- `POST /tool/upload_file`
+- `POST /tool/run_remote_command`
+- `POST /tool/fetch_report`
+- `POST /tool/analyze_report`
+- `POST /tool/run_full_job`
+
+### HTTP 调用示例
+
+```bash
+curl -s http://127.0.0.1:8080/health
+```
+
+```bash
+curl -s http://127.0.0.1:8080/tool/run_full_job \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "file_key": "outbox/case1.sh",
+    "server_ip": "10.217.8.238",
+    "username": "root",
+    "password": "your_password",
+    "remote_path": "/tmp/testjobs/",
+    "run_command": "bash /tmp/testjobs/case1.sh",
+    "remote_report_path": "/tmp/testjobs/output/",
+    "local_report_key": "reports/job_001"
+  }'
+```
 
 ## VMware 共享目录约定
 
@@ -65,7 +109,7 @@ PY
 └── failed/
 ```
 
-## 最小可运行示例
+## Python 最小可运行示例
 
 ```python
 from tools import tool_run_full_job
